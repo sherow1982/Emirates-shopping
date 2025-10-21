@@ -1,0 +1,43 @@
+# اسم سير العمل
+name: Scrape Products Data
+
+# متى يتم تشغيل هذا السير؟
+on:
+  # تشغيل يدوي من تبويب Actions في جيت هب
+  workflow_dispatch:
+  # تشغيل تلقائي كل يوم الساعة 02:00 بالتوقيت العالمي UTC
+  schedule:
+    - cron: '0 2 * * *'
+
+# المهام التي سيتم تنفيذها
+jobs:
+  build-and-scrape:
+    runs-on: ubuntu-latest # نوع الجهاز الذي سيعمل عليه الكود
+
+    steps:
+      # الخطوة 1: نسخ محتويات المستودع
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # الخطوة 2: تثبيت بايثون
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # الخطوة 3: تثبيت المكتبات المطلوبة من ملف requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # الخطوة 4: تشغيل كود بايثون لجلب البيانات
+      - name: Run scraper script
+        run: python scraper.py
+
+      # الخطوة 5: رفع الملف الجديد إلى المستودع
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add products.json
+          git diff --staged --quiet || git commit -m "Auto-update products data"
+          git push
