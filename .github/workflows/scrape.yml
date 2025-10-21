@@ -7,9 +7,9 @@ on:
     branches:
       - main
 
-# الصلاحيات المطلوبة للـ Workflow
+# الصلاحيات المطلوبة للـ Workflow (تم التصحيح هنا)
 permissions:
-  contents: writed
+  contents: write # <-- هذا هو التعديل الأساسي
   pages: write
   id-token: write
 
