@@ -2,14 +2,12 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import time
-import xml.etree.ElementTree as ET # مكتبة جديدة لتحليل ملفات XML
+import xml.etree.ElementTree as ET
 
 # --- الإعدادات ---
 BASE_URL = "https://emirates-shopping.sellsite.net/"
-# تم تغيير المصدر إلى ملف sitemap.xml
-SITEMAP_URL = BASE_URL + "sitemap.xml" 
+SITEMAP_URL = BASE_URL + "sitemap.xml"
 OUTPUT_FILE = "products.json"
-# headers لمحاكاة متصفح حقيقي وتجنب الحظر
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 }
@@ -18,19 +16,16 @@ def get_product_links_from_sitemap():
     """تجلب هذه الدالة روابط جميع المنتجات من ملف sitemap.xml."""
     print(f"جاري جلب روابط المنتجات من: {SITEMAP_URL}")
     try:
-        response = requests.get(SITEMAP_URL, headers=HEADERS)
-        response.raise_for_status()  # للتأكد من أن الطلب ناجح
+        response = requests.get(SITEMAP_URL, headers=HEADERS, timeout=30) # إضافة مهلة زمنية
+        response.raise_for_status()
+        print("تم جلب ملف sitemap.xml بنجاح.")
         
-        # تحليل محتوى XML
         root = ET.fromstring(response.content)
-        
-        # مساحة الاسم (namespace) للـ sitemap، مهم جداً للبحث الصحيح
         namespace = {'ns': root.tag.split('}')[0][1:]}
         
         links = []
         # البحث عن كل وسوم <url> في ملف الـ sitemap
         for url in root.findall('ns:url', namespace):
-            # البحث عن وسم <loc> داخل كل <url>
             loc_tag = url.find('ns:loc', namespace)
             if loc_tag is not None:
                 product_url = loc_tag.text
@@ -46,13 +41,14 @@ def get_product_links_from_sitemap():
         return []
     except ET.ParseError as e:
         print(f"خطأ في تحليل ملف XML: {e}")
+        print("محتوى الاستجابة الأولي:", response.text[:500]) # طباعة أول 500 حرف من المحتوى للمساعدة في التشخيص
         return []
 
 def scrape_product_details(url):
-    """تجلب هذه الدالة تفاصيل منتج واحد من صفحته (لم تتغير)."""
+    """تجلب هذه الدالة تفاصيل منتج واحد من صفحته."""
     print(f"  - جاري تفاصيل المنتج من: {url}")
     try:
-        response = requests.get(url, headers=HEADERS)
+        response = requests.get(url, headers=HEADERS, timeout=30)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -90,22 +86,22 @@ def main():
     """الدالة الرئيسية التي تنظم عملية الجلب."""
     all_products_data = []
     
-    # 1. جلب جميع روابط المنتجات من الـ sitemap (هنا التغيير)
     product_links = get_product_links_from_sitemap()
     
     if not product_links:
         print("لم يتم العثور على أي منتجات. إنهاء العملية.")
         return
 
-    # 2. المرور على كل رابط وجلب تفاصيله
-    for link in product_links:
+    print(f"سيتم الآن البدء في جلب تفاصيل {len(product_links)} منتج.")
+    for i, link in enumerate(product_links):
+        print(f"--- معالجة المنتج رقم {i+1} ---")
         product_details = scrape_product_details(link)
         if product_details:
             all_products_data.append(product_details)
-        # إضافة تأخير صغير بين الطلبات
+        else:
+            print(f"    فشل جلب تفاصيل المنتج من الرابط: {link}")
         time.sleep(1) 
     
-    # 3. حفظ البيانات في ملف JSON
     if all_products_data:
         print(f"\nتم جلب بيانات {len(all_products_data)} منتج بنجاح.")
         print(f"جاري حفظ البيانات في ملف: {OUTPUT_FILE}")
@@ -117,6 +113,5 @@ def main():
     else:
         print("لم يتم جلب أي بيانات للمنتجات.")
 
-# تشغيل الدالة الرئيسية
 if __name__ == "__main__":
     main()
