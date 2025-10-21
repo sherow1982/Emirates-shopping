@@ -15,7 +15,7 @@
         .product-card h3 { font-size: 1.1em; margin: 10px 0; color: #555; }
         .product-card p { font-size: 1.2em; font-weight: bold; color: #007bff; }
         .product-card a { text-decoration: none; color: inherit; }
-        /* --- إضافة أنماط للرسائل الجديدة --- */
+        /* --- أنماط الرسائل --- */
         #loading-message, #error-message, #no-products-message { text-align: center; font-size: 1.2em; color: #777; grid-column: 1 / -1; }
         #error-message { color: #d9534f; }
     </style>
@@ -35,9 +35,8 @@
             const container = document.getElementById('products-container');
             const loadingMessage = document.getElementById('loading-message');
 
-            // مسح رسالة التحميل بعد بدء عملية الجلب
-            // loadingMessage.style.display = 'none'; // سنتركها تظهر حتى نعرف النتيجة
-
+            // جلب بيانات المنتجات من الملف المحلي
+            // عندما يتم نشر الموقع، سيكون هذا الملف في نفس المجلد
             fetch('products.json')
                 .then(response => {
                     if (!response.ok) {
@@ -46,7 +45,7 @@
                     return response.json();
                 })
                 .then(products => {
-                    container.innerHTML = ''; // مسح محتوى الحاوية (بما في ذلك رسالة التحميل)
+                    container.innerHTML = ''; // مسح محتوى الحاوية
 
                     if (products.length === 0) {
                         container.innerHTML = '<p id="no-products-message">لا توجد منتجات متاحة حالياً.</p>';
@@ -69,7 +68,7 @@
                 })
                 .catch(error => {
                     console.error('Error fetching products:', error);
-                    container.innerHTML = '<p id="error-message">فشل تحميل المنتجات. يرجى المحاولة مرة أخرى لاحقًا.</p>';
+                    container.innerHTML = '<p id="error-message">فشل تحميل المنتجات. يرجى التأكد من وجود ملف products.json.</p>';
                 });
         });
     </script>
