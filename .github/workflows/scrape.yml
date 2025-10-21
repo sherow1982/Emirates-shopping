@@ -1,34 +1,32 @@
-# اسم سير العمل
-name: Scrape Products Data
+# اسم الـ Workflow
+name: Scrape Products and Deploy to GitHub Pages
 
-# متى يتم تشغيل هذا السير؟
+# متى يتم تشغيل الـ Workflow (عند كل دفع push للفرع main)
 on:
-  # تشغيل يدوي من تبويب Actions في جيت هب
-  workflow_dispatch:
-  # تشغيل تلقائي كل يوم الساعة 02:00 بالتوقيت العالمي UTC
-  schedule:
-    - cron: '0 2 * * *'
+  push:
+    branches:
+      - main
 
-# المهام التي سيتم تنفيذها
+# الصلاحيات المطلوبة للـ Workflow
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# تعريف المهام (Jobs)
 jobs:
-  scrape-and-commit:
-    runs-on: ubuntu-latest
-
-    # منح الأذونات الصريحة للروبوت
-    permissions:
-      contents: write
+  # مهمة البناء والنشر
+  build-and-deploy:
+    runs-on: ubuntu-latest # التشغيل على نظام Ubuntu
 
     steps:
-      # الخطوة 1: نسخ محتويات المستودع
+      # الخطوة 1: سحب الكود من الريبو
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          # جلب السجل الكامل للمستودع (مهم للإجراء الجديد)
-          fetch-depth: 0
 
-      # الخطوة 2: تثبيت بايثون
+      # الخطوة 2: إعداد بيئة بايثون
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
@@ -36,14 +34,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # الخطوة 4: تشغيل كود بايثون لجلب البيانات
-      - name: Run scraper script
+      # الخطوة 4: تشغيل سكربت سحب البيانات
+      - name: Run scraper
         run: python scraper.py
 
-      # الخطوة 5: استخدام إجراء متخصص للرفع (الحل الجديد)
-      - name: Commit and push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+      # الخطوة 5: نشر الملفات إلى GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          commit_message: "Auto-update products data"
-          # سيقوم فقط برفع الملف إذا تغير بالفعل
-          file_pattern: 'products.json' 
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./ # النشر من المجلد الرئيسي (حيث يوجد index.html و products.json)
