@@ -11,13 +11,20 @@ on:
 
 # المهام التي سيتم تنفيذها
 jobs:
-  build-and-scrape:
-    runs-on: ubuntu-latest # نوع الجهاز الذي سيعمل عليه الكود
+  scrape-and-commit:
+    runs-on: ubuntu-latest
+
+    # منح الأذونات الصريحة للروبوت
+    permissions:
+      contents: write
 
     steps:
       # الخطوة 1: نسخ محتويات المستودع
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # جلب السجل الكامل للمستودع (مهم للإجراء الجديد)
+          fetch-depth: 0
 
       # الخطوة 2: تثبيت بايثون
       - name: Set up Python
@@ -25,7 +32,7 @@ jobs:
         with:
           python-version: '3.10'
 
-      # الخطوة 3: تثبيت المكتبات المطلوبة من ملف requirements.txt
+      # الخطوة 3: تثبيت المكتبات المطلوبة
       - name: Install dependencies
         run: pip install -r requirements.txt
 
@@ -33,11 +40,10 @@ jobs:
       - name: Run scraper script
         run: python scraper.py
 
-      # الخطوة 5: رفع الملف الجديد إلى المستودع
-      - name: Commit and push if changed
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add products.json
-          git diff --staged --quiet || git commit -m "Auto-update products data"
-          git push
+      # الخطوة 5: استخدام إجراء متخصص للرفع (الحل الجديد)
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Auto-update products data"
+          # سيقوم فقط برفع الملف إذا تغير بالفعل
+          file_pattern: 'products.json' 
