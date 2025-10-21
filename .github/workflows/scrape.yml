@@ -9,7 +9,7 @@ on:
 
 # الصلاحيات المطلوبة للـ Workflow
 permissions:
-  contents: read
+  contents: writed
   pages: write
   id-token: write
 
