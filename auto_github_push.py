@@ -6,6 +6,7 @@ import html
 import re
 from string import Template
 from datetime import datetime
+import sys
 
 def clean_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
@@ -15,10 +16,10 @@ def make_product_schema(prod):
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": prod['title'],
-        "image": prod.get('image_link',""),
+        "image": prod.get('image_link', ""),
         "description": prod['description'],
         "sku": prod['id'],
-        "brand": {"@type":"Brand","name":"Emirates Shopping"},
+        "brand": {"@type": "Brand", "name": "Emirates Shopping"},
         "offers": {
             "@type": "Offer",
             "priceCurrency": "AED",
@@ -29,7 +30,15 @@ def make_product_schema(prod):
     }
     return json.dumps(schema, ensure_ascii=False)
 
-# --- توليد الصفحات ---
+# --------- التوليد ------------
+if not os.path.exists('.git'):
+    print('\n[خطأ] انت لست بداخل فولدر الريبو (مجلد .git غير موجود)، لازم تشغل السكربت في المجلد الصحيح!\n')
+    sys.exit(1)
+
+if not os.path.isfile("products.json"):
+    print('\n[خطأ] ملف المنتجات products.json غير موجود في هذا المجلد.\n')
+    sys.exit(2)
+
 with open('products.json', 'r', encoding='utf-8') as f:
     products = json.load(f)
 
@@ -79,9 +88,7 @@ product_template_str = """
     <meta property="og:url" content="$link" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <script type="application/ld+json">
-    $schema_json
-    </script>
+    <script type="application/ld+json">$schema_json</script>
     <style>
         body {background: linear-gradient(110deg,#3a80f7 0%,#5eedbc 100%); margin:0; font-family:'Cairo',Arial,sans-serif;}
         .container { max-width:745px; margin:60px auto 30px auto; background:white; border-radius:16px; box-shadow:0 8px 38px 0 rgb(52 52 151 / 10%); padding:48px 32px 32px 32px;}
@@ -180,12 +187,13 @@ grid_template_str = """
 product_template = Template(product_template_str)
 grid_template = Template(grid_template_str)
 
+print("توليد صفحات المنتجات الفردية...")
 card_htmls = []
 for product in products:
     safe_title = clean_filename(product['title'])
     filename = f"{safe_title}.html"
     desc_long = f"{product['title']} هو منتج عصري وفاخر تم اختياره ليناسب احتياجاتك الشخصية بعناية. يتميز بجودة عالية وملاءمة مثالية لكل منزل/عمل أو هدية. استمتع بأداء المنتج وراحة استثنائية كل يوم. اطلب الآن بخصم مميز مع ضمان رضاك الكامل."
-    desc_short = product.get('description','')
+    desc_short = product.get('description', '')
     price = product['price']
     schema_json = make_product_schema(product)
     page_content = product_template.substitute(
@@ -195,7 +203,7 @@ for product in products:
         desc_long=html.escape(desc_long),
         desc_short=html.escape(desc_short),
         link=product['link'],
-        image=product.get('image_link',''),
+        image=product.get('image_link', ''),
         schema_json=schema_json,
         header=header_html,
         footer=footer_html
@@ -213,6 +221,8 @@ for product in products:
     </a>
     ''')
 
+
+print("توليد صفحة قائمة المنتجات الرئيسية...")
 list_html = grid_template.substitute(
     header=header_html,
     footer=footer_html,
@@ -221,11 +231,13 @@ list_html = grid_template.substitute(
 with open("products-list.html", "w", encoding='utf-8') as f:
     f.write(list_html)
 
-#--- رفع الكل في دفعة واحدة بـ git ---
+print("بدء git add والرفع...")
 try:
     subprocess.run("git add .", shell=True, check=True)
-    subprocess.run(f'git commit -m "منتجات جديدة وواجهة جديدة تلقائي"', shell=True, check=True)
+    subprocess.run(f'git commit -m "auto: تحديث جميع منتجات وصفحات المتجر"', shell=True, check=True)
     subprocess.run("git push", shell=True, check=True)
     print("تم رفع جميع الملفات دفعة واحدة (push)!")
 except Exception as e:
     print("خطأ في git أو ليس في مجلد repo:", e)
+
+print("كل شيء انتهى ✅")
